@@ -50,9 +50,11 @@ class IoLinkMasterDataProvider:
         self.session_ = session
 
     async def pingDevice(self):
+        """ " ping device"""
         return True
 
     async def getMasterConfig(self):
+        """ " get master config"""
         # mastersList = await self.request_wrapper(
         #     method="get", url=self.url_ + "/masters"
         # )
@@ -88,6 +90,7 @@ class IoLinkMasterDataProvider:
         return self.config
 
     async def async_get_data(self):
+        """get data"""
         if self.config["inputOutputs"] == {}:
             await self.getMasterConfig()
         for deviceAlias, io in self.config["inputOutputs"].items():
@@ -114,6 +117,7 @@ class IoLinkMasterDataProvider:
         return self.config["inputOutputs"]
 
     async def login(self):
+        """login"""
         self.session_.cookie_jar.clear()
         url = self.url_ + "/api/balluff/v1/users/login"
         data = {"username": self.username_, "password": self.password_}
@@ -139,6 +143,7 @@ class IoLinkMasterDataProvider:
         url: str,
         data: dict | None = None,
     ) -> any:
+        """request wrapper"""
         try:
             async with async_timeout.timeout(100000):
                 response = await self.session_.request(
