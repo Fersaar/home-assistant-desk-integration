@@ -1,0 +1,10 @@
+{
+  "domain": "iolinkmaster_integration",
+  "name": "IOLink Master",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/Fersaar/home-assistant-iolinkmaster-integration",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Fersaar/home-assistant-iolinkmaster-integration/issues",
+  "version": "0.0.0"
+}

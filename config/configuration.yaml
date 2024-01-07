@@ -5,4 +5,7 @@ default_config:
 logger:
   default: info
   logs:
-    custom_components.integration_blueprint: debug
+    custom_components.iolinkmaster_integration: debug
+# Example configuration.yaml entry
+debugpy:
+  wait: true

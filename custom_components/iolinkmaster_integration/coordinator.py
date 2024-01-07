@@ -1,4 +1,4 @@
-"""DataUpdateCoordinator for integration_blueprint."""
+"""DataUpdateCoordinator for iolinkmaster_integration."""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -11,8 +11,8 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .api import (
-    IntegrationBlueprintApiClient,
+from .IoLinkMasterDataProvider import (
+    IoLinkMasterDataProvider,
     IntegrationBlueprintApiClientAuthenticationError,
     IntegrationBlueprintApiClientError,
 )
@@ -20,7 +20,7 @@ from .const import DOMAIN, LOGGER
 
 
 # https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
-class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
+class IoLinkMasterDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
     config_entry: ConfigEntry
@@ -28,7 +28,7 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
-        client: IntegrationBlueprintApiClient,
+        client: IoLinkMasterDataProvider,
     ) -> None:
         """Initialize."""
         self.client = client

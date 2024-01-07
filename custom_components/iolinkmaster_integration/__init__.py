@@ -1,4 +1,4 @@
-"""Custom integration to integrate integration_blueprint with Home Assistant.
+"""Custom integration to integrate iolink masters with Home Assistant.
 
 For more details about this integration, please refer to
 https://github.com/ludeeus/integration_blueprint
@@ -10,12 +10,11 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import IntegrationBlueprintApiClient
-from .const import DOMAIN
-from .coordinator import BlueprintDataUpdateCoordinator
+from .IoLinkMasterDataProvider import IoLinkMasterDataProvider
+from . import const
+from .coordinator import IoLinkMasterDataUpdateCoordinator
 
 PLATFORMS: list[Platform] = [
-    Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.SWITCH,
 ]
@@ -24,12 +23,13 @@ PLATFORMS: list[Platform] = [
 # https://developers.home-assistant.io/docs/config_entries_index/#setting-up-an-entry
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up this integration using UI."""
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = coordinator = BlueprintDataUpdateCoordinator(
+    hass.data.setdefault(const.DOMAIN, {})
+    hass.data[const.DOMAIN][entry.entry_id] = coordinator = IoLinkMasterDataUpdateCoordinator(
         hass=hass,
-        client=IntegrationBlueprintApiClient(
-            username=entry.data[CONF_USERNAME],
-            password=entry.data[CONF_PASSWORD],
+        client=IoLinkMasterDataProvider(
+            url=entry.data[const.IP],
+            username=entry.data[const.USERNAME],
+            password=entry.data[const.PASSWORD],
             session=async_get_clientsession(hass),
         ),
     )
@@ -45,7 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
     if unloaded := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[const.DOMAIN].pop(entry.entry_id)
     return unloaded
 
 

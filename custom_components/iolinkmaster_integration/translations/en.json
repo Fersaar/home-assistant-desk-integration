@@ -2,8 +2,11 @@
     "config": {
         "step": {
             "user": {
-                "description": "If you need help with the configuration have a look here: https://github.com/ludeeus/integration_blueprint",
+                "title": "add new IOLink master module",
+                "description": "awesome description: https://github.com/ludeeus/integration_blueprint",
                 "data": {
+                    "alias": "Alias",
+                    "ip": "IP",
                     "username": "Username",
                     "password": "Password"
                 }
