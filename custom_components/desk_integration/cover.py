@@ -1,16 +1,17 @@
 import logging
-
+from typing import Any
 
 import homeassistant.components.cover as cover
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import callback, HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.const import CONF_ADDRESS
-from .const import DOMAIN
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .const import DOMAIN
+from .Integration import MyCoordinator
+from .entity import DeskEntity
 
 ENTITY_DESCRIPTIONS = (
     cover.CoverEntityDescription(
@@ -19,11 +20,6 @@ ENTITY_DESCRIPTIONS = (
         icon="mdi:desk",
     ),
 )
-from typing import Any
-
-from .const import DOMAIN
-from .Integration import MyCoordinator
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -43,18 +39,18 @@ async def async_setup_entry(
     # If you do not want to retry setup on failure, use
     # coordinator.async_refresh() instead
     #
-    await coordinator.async_config_entry_first_refresh()
+    # await coordinator.async_config_entry_first_refresh()
 
     async_add_entities(
         [
             MyEntity(coordinator, description, entry.title)
             for description in ENTITY_DESCRIPTIONS
-        ],
-        update_before_add=True,
+        ]
+        # update_before_add=True,
     )
 
 
-class MyEntity(CoordinatorEntity, cover.CoverEntity):
+class MyEntity(DeskEntity, cover.CoverEntity):
     """An entity using CoordinatorEntity.
 
     The CoordinatorEntity class provides:
@@ -69,18 +65,11 @@ class MyEntity(CoordinatorEntity, cover.CoverEntity):
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
         """Pass coordinator to CoordinatorEntity."""
-        self._coordinator = coordinator
         self.entity_description = description
-        self._attr_unique_id = self._coordinator._configData[CONF_ADDRESS]
         self._attr_name = description.name  # + "_attr_name"
         self._attr_device_class = cover.CoverDeviceClass.DAMPER
         self._attr_icon = "mdi:desk"
-        self._attr_device_info = DeviceInfo(
-            name=title,
-            identifiers={(DOMAIN, self._attr_unique_id)},
-            model="desk3000",
-            manufacturer="selfMade",
-        )
+
         self._attr_supported_features = (
             cover.CoverEntityFeature.OPEN
             | cover.CoverEntityFeature.CLOSE
@@ -89,50 +78,44 @@ class MyEntity(CoordinatorEntity, cover.CoverEntity):
         )
 
     @property
-    def current_cover_position(self) -> int | None:
-        return self._coordinator.position
-
-    # @property
-    # def available(self) -> bool:
-    #     """Return True if entity is available"""
-    #     return self._coordinator.is_connected
+    def current_cover_position(self) -> float | None:
+        return min(0, self.coordinator.percentage)
 
     @property
     def is_closed(self) -> bool:
-        """Return True if entity is available"""
-        return self._coordinator.position > self._coordinator.lower_limit
+        return self.coordinator.position == self.coordinator.lower_limit
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Close the cover."""
         try:
-            await self._coordinator.move_up()
+            await self.coordinator.move_up()
         except Exception as e:
             raise HomeAssistantError("Failed to move up")
-        await self._coordinator.async_request_refresh()
+        await self.coordinator.async_request_refresh()
 
     async def async_stop_cover(self, **kwargs: Any) -> None:
         """Stop the cover."""
         try:
-            await self._coordinator.stop()
+            await self.coordinator.stop()
         except Exception as e:
             raise HomeAssistantError("Failed to stop")
-        await self._coordinator.async_request_refresh()
+        await self.coordinator.async_request_refresh()
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Cose the cover."""
         try:
-            await self._coordinator.move_down()
+            await self.coordinator.move_down()
         except Exception as e:
             raise HomeAssistantError("Failed to move down")
-        await self._coordinator.async_request_refresh()
+        await self.coordinator.async_request_refresh()
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """CLose the cover."""
         try:
-            await self._coordinator.move_to(int(kwargs[cover.ATTR_POSITION]))
+            await self.coordinator.move_to(int(kwargs[cover.ATTR_POSITION]))
         except Exception as e:
             raise HomeAssistantError("Failed to move down")
-        await self._coordinator.async_request_refresh()
+        await self.coordinator.async_request_refresh()
 
     @callback
     def _handle_coordinator_update(self, *args: Any) -> None:

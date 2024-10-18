@@ -40,22 +40,22 @@ class MyCoordinator(DataUpdateCoordinator):
         self._lowerLimit = 500
         self._upperLimit = 1000
 
-    async def move_up(self):
+    async def move_up(self) -> None:
         resp = await self._session.get(f"{self._url}/move?direction=UP")
         resp.raise_for_status()
         pass
 
-    async def move_down(self):
+    async def move_down(self) -> None:
         resp = await self._session.get(f"{self._url}/move?direction=DOWN")
         resp.raise_for_status()
         pass
 
-    async def stop(self):
+    async def stop(self) -> None:
         resp = await self._session.get(f"{self._url}/move?direction=STOP")
         resp.raise_for_status()
         pass
 
-    async def move_to(self, value: int):
+    async def move_to(self, value: int) -> None:
         target = self._lowerLimit + (self._upperLimit - self._lowerLimit) * (
             value / 100
         )
@@ -64,15 +64,19 @@ class MyCoordinator(DataUpdateCoordinator):
         pass
 
     @property
-    def lower_limit(self) -> bool:
+    def lower_limit(self) -> int:
         return self._lowerLimit
 
     @property
-    def position(self) -> bool:
+    def percentage(self) -> float:
         percentage = (self._position - self._lowerLimit) / (
             self._upperLimit - self._lowerLimit
         )
         return percentage * 100
+
+    @property
+    def position(self) -> int:
+        return self._position
 
     @property
     def is_connected(self) -> bool:
@@ -80,16 +84,16 @@ class MyCoordinator(DataUpdateCoordinator):
 
     async def _async_setup(self) -> None:
         resp = await self._session.get(f"{self._url}/limits")
-        self._lowerLimit = resp.json()["lowerLimit"]
-        self._upperLimit = resp.json()["lowerLimit"]
+        json = await resp.json(content_type="")
+        self._lowerLimit = json["lowerLimit"]
+        self._upperLimit = json["upperLimit"]
 
     async def _async_update_data(self):
         """update data"""
-        print("coordinator _async_update_data called")
         try:
             async with async_timeout.timeout(3):
                 response = await self._session.get(f"{self._url}/position")
                 self._position = int(await response.text())
-        except:
+        except Exception as e:
             self._position = 0
-            raise UpdateFailed(f"Error communicating with IP: {self._url}")
+            raise UpdateFailed(f"Error communicating with IP: {self._url}, {e}")
