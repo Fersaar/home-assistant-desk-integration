@@ -2,13 +2,10 @@
     "config": {
         "step": {
             "user": {
-                "title": "add new IOLink master module",
-                "description": "awesome description: https://github.com/ludeeus/integration_blueprint",
+                "title": "add newdesk module",
+                "description": "no description",
                 "data": {
-                    "alias": "Alias",
-                    "ip": "IP",
-                    "username": "Username",
-                    "password": "Password"
+                    "address": "Ip address"
                 }
             }
         },

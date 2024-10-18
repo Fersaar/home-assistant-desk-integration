@@ -4,8 +4,8 @@ default_config:
 # https://www.home-assistant.io/integrations/logger/
 logger:
   default: info
-  logs:
-    custom_components.iolinkmaster_integration: debug
+  # logs:
+  #   custom_components.desk_integration: debug
 # Example configuration.yaml entry
 debugpy:
   wait: true
