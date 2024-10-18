@@ -10,7 +10,7 @@ __pycache__
 .coverage
 .vscode
 coverage.xml
-archiv
+.ruff_cache
 
 
 # Home Assistant configuration
