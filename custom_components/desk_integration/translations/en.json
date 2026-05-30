@@ -2,17 +2,58 @@
     "config": {
         "step": {
             "user": {
-                "title": "add newdesk module",
-                "description": "no description",
+                "title": "Add a desk",
+                "description": "Enter the IP address or hostname of the desk's web interface.",
                 "data": {
-                    "address": "Ip address"
+                    "host": "Host"
+                },
+                "data_description": {
+                    "host": "IP address or hostname (e.g. 192.168.2.3)."
                 }
             }
         },
         "error": {
-            "auth": "Username/Password is wrong.",
-            "connection": "Unable to connect to the server.",
-            "unknown": "Unknown error occurred."
+            "cannot_connect": "Failed to connect",
+            "unknown": "Unexpected error"
+        },
+        "abort": {
+            "already_configured": "Device is already configured"
+        }
+    },
+    "entity": {
+        "cover": {
+            "desk": {
+                "name": "Desk"
+            }
+        },
+        "sensor": {
+            "position": {
+                "name": "Position"
+            },
+            "movement": {
+                "name": "Movement",
+                "state": {
+                    "moving up": "Moving up",
+                    "moving down": "Moving down",
+                    "not moving": "Not moving"
+                }
+            }
+        },
+        "number": {
+            "height": {
+                "name": "Height"
+            },
+            "lower_limit": {
+                "name": "Lower limit"
+            },
+            "upper_limit": {
+                "name": "Upper limit"
+            }
+        },
+        "button": {
+            "auto_calibrate": {
+                "name": "Auto-calibrate"
+            }
         }
     }
 }

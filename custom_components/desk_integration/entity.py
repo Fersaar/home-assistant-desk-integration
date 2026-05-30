@@ -1,27 +1,30 @@
-"""BlueprintEntity class."""
+"""Base entity for the Desk integration."""
 
 from __future__ import annotations
 
-from homeassistant.helpers.entity import DeviceInfo
+from typing import TYPE_CHECKING
+
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import ATTRIBUTION, DOMAIN
-from homeassistant.const import CONF_ADDRESS
-from .Integration import MyCoordinator
+from .const import DOMAIN, MANUFACTURER, MODEL, NAME
+
+if TYPE_CHECKING:
+    from .coordinator import DeskDataUpdateCoordinator
 
 
-class DeskEntity(CoordinatorEntity[MyCoordinator]):
-    """BlueprintEntity class."""
+class DeskEntity(CoordinatorEntity["DeskDataUpdateCoordinator"]):
+    """Base class for desk entities."""
 
-    _attr_attribution = ATTRIBUTION
+    _attr_has_entity_name = True
 
-    def __init__(self, coordinator: MyCoordinator) -> None:
-        """Initialize."""
+    def __init__(self, coordinator: DeskDataUpdateCoordinator) -> None:
+        """Initialize the entity."""
         super().__init__(coordinator)
-        self._attr_unique_id = self.coordinator._configData[CONF_ADDRESS]
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self.unique_id)},
-            name="helloWorld",
-            model="desk3000",
-            manufacturer="selfMade",
+            identifiers={(DOMAIN, coordinator.config_entry.entry_id)},
+            name=NAME,
+            manufacturer=MANUFACTURER,
+            model=MODEL,
+            configuration_url=coordinator.client.base_url,
         )

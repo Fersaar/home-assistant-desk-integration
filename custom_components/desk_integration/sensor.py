@@ -1,74 +1,86 @@
-"""Representation of Idasen Desk sensors."""
+"""Sensor platform for the Desk integration."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING
 
-from homeassistant import config_entries
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import CONF_ADDRESS, UnitOfLength
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.const import EntityCategory
 
-from .const import DOMAIN
-from .Integration import MyCoordinator
+from .const import STATE_MOVING_DOWN, STATE_MOVING_UP, STATE_NOT_MOVING
+from .coordinator import DeskData
 from .entity import DeskEntity
 
-SENSORS = (
-    SensorEntityDescription(
-        key="height",
-        translation_key="height",
-        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
-        device_class=SensorDeviceClass.DISTANCE,
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from .coordinator import DeskDataUpdateCoordinator
+    from .data import DeskConfigEntry
+
+
+@dataclass(frozen=True, kw_only=True)
+class DeskSensorEntityDescription(SensorEntityDescription):
+    """Describes a Desk sensor."""
+
+    value_fn: Callable[[DeskData], int | str | None]
+
+
+SENSOR_DESCRIPTIONS: tuple[DeskSensorEntityDescription, ...] = (
+    DeskSensorEntityDescription(
+        key="position",
+        translation_key="position",
         state_class=SensorStateClass.MEASUREMENT,
-        entity_registry_enabled_default=False,
-        suggested_display_precision=3,
+        value_fn=lambda data: data.position,
+    ),
+    DeskSensorEntityDescription(
+        key="movement",
+        translation_key="movement",
+        device_class=SensorDeviceClass.ENUM,
+        options=[STATE_MOVING_UP, STATE_MOVING_DOWN, STATE_NOT_MOVING],
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.movement,
     ),
 )
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: config_entries.ConfigEntry,
+    entry: DeskConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Idasen Desk sensors."""
+    """Set up the sensor platform."""
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
-        IdasenDeskSensor(hass.data[DOMAIN][entry.entry_id], sensor_description)
-        for sensor_description in SENSORS
+        DeskSensor(coordinator, description) for description in SENSOR_DESCRIPTIONS
     )
 
 
-class IdasenDeskSensor(DeskEntity, SensorEntity):
-    """IdasenDesk sensor."""
+class DeskSensor(DeskEntity, SensorEntity):
+    """Sensor exposing a value derived from the coordinator data."""
 
-    entity_description: SensorEntityDescription
-    _attr_has_entity_name = True
+    entity_description: DeskSensorEntityDescription
 
     def __init__(
         self,
-        coordinator: MyCoordinator,
-        description,
+        coordinator: DeskDataUpdateCoordinator,
+        description: DeskSensorEntityDescription,
     ) -> None:
-        """Initialize the IdasenDesk sensor entity."""
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}-{description.key}"
 
     @property
-    def native_value(self) -> int | None:
-        """Return the native value of the sensor."""
-        return self.coordinator.position
-
-    @callback
-    def _handle_coordinator_update(self, *args: Any) -> None:
-        """Handle data update."""
-        self.async_write_ha_state()
+    def native_value(self) -> int | str | None:
+        """Return the current value."""
+        if self.coordinator.data is None:
+            return None
+        return self.entity_description.value_fn(self.coordinator.data)

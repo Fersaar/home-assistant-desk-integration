@@ -23,4 +23,4 @@ export PYTHONPATH="${PYTHONPATH}:${PWD}/custom_components"
 # Do not set debugpy in configuration.yaml if adding debugpy in command line here...
 
 # To start and wait for remote debugger
-python3 -Xfrozen_modules=off -m debugpy --listen localhost:5678 -m homeassistant --config ${PWD}/config
+python3 -Xfrozen_modules=on -m debugpy --listen localhost:5678 -m homeassistant --config ${PWD}/config

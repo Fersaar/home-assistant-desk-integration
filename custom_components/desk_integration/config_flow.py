@@ -1,56 +1,59 @@
-"""Config flow for Idasen Desk integration."""
+"""Config flow for the Desk integration."""
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
-# from bluetooth_data_tools import human_readable_name
-# from idasen_ha import Desk
-# from idasen_ha.errors import AuthFailedError
 import voluptuous as vol
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.const import CONF_HOST
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from homeassistant import config_entries
+from .api import DeskApiClient, DeskApiError
+from .const import DOMAIN, LOGGER
 
-from homeassistant.const import CONF_ADDRESS
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import selector
-
-from . import const
-
-_LOGGER = logging.getLogger(__name__)
+STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_HOST): str,
+    }
+)
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
-    """Handle a config flow for Idasen Desk integration."""
+class DeskConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a Desk config flow."""
 
     VERSION = 1
 
-    STEP_USER_DATA_SCHEMA = vol.Schema(
-        {
-            vol.Required(CONF_ADDRESS): selector.TextSelector(
-                selector.TextSelectorConfig(type=selector.TextSelectorType.URL),
-            )
-        }
-    )
-
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the user step to configure device."""
+    ) -> ConfigFlowResult:
+        """Handle the initial user step."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            address = user_input[CONF_ADDRESS]
-            await self.async_set_unique_id(address, raise_on_progress=False)
-            self._abort_if_unique_id_configured()
-
-            return self.async_create_entry(
-                title="desk" + address, data={CONF_ADDRESS: address}
+            host = user_input[CONF_HOST].strip()
+            client = DeskApiClient(
+                host=host, session=async_get_clientsession(self.hass)
             )
+
+            try:
+                await client.async_get_position()
+            except DeskApiError as err:
+                LOGGER.warning("Cannot connect to desk %s: %s", host, err)
+                errors["base"] = "cannot_connect"
+            except Exception:  # noqa: BLE001
+                LOGGER.exception("Unexpected error connecting to desk %s", host)
+                errors["base"] = "unknown"
+            else:
+                await self.async_set_unique_id(client.base_url)
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title=f"Desk ({host})",
+                    data={CONF_HOST: host},
+                )
 
         return self.async_show_form(
             step_id="user",
-            data_schema=self.STEP_USER_DATA_SCHEMA,
+            data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
         )
