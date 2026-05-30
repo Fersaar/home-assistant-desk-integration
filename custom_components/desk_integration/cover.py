@@ -1,140 +1,137 @@
-import logging
+"""Cover platform for the Desk integration."""
 
+from __future__ import annotations
 
-import homeassistant.components.cover as cover
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import callback, HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.const import CONF_ADDRESS
-from .const import DOMAIN
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from typing import TYPE_CHECKING, Any
 
-
-ENTITY_DESCRIPTIONS = (
-    cover.CoverEntityDescription(
-        key="desk_integration",
-        name="myDesk",
-        icon="mdi:desk",
-    ),
+from homeassistant.components.cover import (
+    ATTR_POSITION,
+    CoverDeviceClass,
+    CoverEntity,
+    CoverEntityDescription,
+    CoverEntityFeature,
 )
-from typing import Any
+from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN
-from .Integration import MyCoordinator
+from .api import DeskApiError
+from .const import STATE_MOVING_DOWN, STATE_MOVING_UP
+from .entity import DeskEntity
 
-_LOGGER = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from .coordinator import DeskDataUpdateCoordinator
+    from .data import DeskConfigEntry
+
+COVER_DESCRIPTION = CoverEntityDescription(
+    key="desk",
+    translation_key="desk",
+)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: DeskConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Config entry example."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    """Set up the cover platform."""
+    async_add_entities([DeskCover(entry.runtime_data.coordinator)])
 
-    # Fetch initial data so we have data when entities subscribe
-    #
-    # If the refresh fails, async_config_entry_first_refresh will
-    # raise ConfigEntryNotReady and setup will try again later
-    #
-    # If you do not want to retry setup on failure, use
-    # coordinator.async_refresh() instead
-    #
-    await coordinator.async_config_entry_first_refresh()
 
-    async_add_entities(
-        [
-            MyEntity(coordinator, description, entry.title)
-            for description in ENTITY_DESCRIPTIONS
-        ],
-        update_before_add=True,
+class DeskCover(DeskEntity, CoverEntity):
+    """Cover entity exposing desk movement and absolute positioning."""
+
+    _attr_device_class = CoverDeviceClass.DAMPER
+    _attr_supported_features = (
+        CoverEntityFeature.OPEN
+        | CoverEntityFeature.CLOSE
+        | CoverEntityFeature.STOP
+        | CoverEntityFeature.SET_POSITION
     )
 
-
-class MyEntity(CoordinatorEntity, cover.CoverEntity):
-    """An entity using CoordinatorEntity.
-
-    The CoordinatorEntity class provides:
-      should_poll
-      async_update
-      async_added_to_hass
-      available
-
-    """
-
-    def __init__(self, coordinator: MyCoordinator, description, title):
-        """Pass coordinator to CoordinatorEntity."""
+    def __init__(self, coordinator: DeskDataUpdateCoordinator) -> None:
+        """Initialize the cover entity."""
         super().__init__(coordinator)
-        """Pass coordinator to CoordinatorEntity."""
-        self._coordinator = coordinator
-        self.entity_description = description
-        self._attr_unique_id = self._coordinator._configData[CONF_ADDRESS]
-        self._attr_name = description.name  # + "_attr_name"
-        self._attr_device_class = cover.CoverDeviceClass.DAMPER
-        self._attr_icon = "mdi:desk"
-        self._attr_device_info = DeviceInfo(
-            name=title,
-            identifiers={(DOMAIN, self._attr_unique_id)},
-            model="desk3000",
-            manufacturer="selfMade",
-        )
-        self._attr_supported_features = (
-            cover.CoverEntityFeature.OPEN
-            | cover.CoverEntityFeature.CLOSE
-            | cover.CoverEntityFeature.STOP
-            | cover.CoverEntityFeature.SET_POSITION
-        )
+        self.entity_description = COVER_DESCRIPTION
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}-cover"
+
+    # ---- Position helpers --------------------------------------------
+
+    def _to_percentage(self, raw_position: int) -> int:
+        """Convert a raw firmware position to a 0..100 cover position."""
+        limits = self.coordinator.data.limits
+        span = limits.upper - limits.lower
+        if span <= 0:
+            return 0
+        clamped = max(min(raw_position, limits.upper), limits.lower)
+        return round((clamped - limits.lower) * 100 / span)
+
+    def _from_percentage(self, percentage: int) -> int:
+        """Convert a 0..100 HA position to a raw firmware target."""
+        limits = self.coordinator.data.limits
+        span = limits.upper - limits.lower
+        return int(round(limits.lower + span * (percentage / 100)))
+
+    # ---- Cover properties --------------------------------------------
 
     @property
     def current_cover_position(self) -> int | None:
-        return self._coordinator.position
-
-    # @property
-    # def available(self) -> bool:
-    #     """Return True if entity is available"""
-    #     return self._coordinator.is_connected
+        """Position from 0 (fully down/closed) to 100 (fully up/open)."""
+        if self.coordinator.data is None:
+            return None
+        return self._to_percentage(self.coordinator.data.position)
 
     @property
-    def is_closed(self) -> bool:
-        """Return True if entity is available"""
-        return self._coordinator.position > self._coordinator.lower_limit
+    def is_closed(self) -> bool | None:
+        """Return True if the desk is at the lower limit."""
+        position = self.current_cover_position
+        if position is None:
+            return None
+        return position <= 0
+
+    @property
+    def is_opening(self) -> bool:
+        """Return True if the desk is currently moving up."""
+        return self.coordinator.data.movement == STATE_MOVING_UP
+
+    @property
+    def is_closing(self) -> bool:
+        """Return True if the desk is currently moving down."""
+        return self.coordinator.data.movement == STATE_MOVING_DOWN
+
+    # ---- Commands -----------------------------------------------------
 
     async def async_open_cover(self, **kwargs: Any) -> None:
-        """Close the cover."""
+        """Move the desk up."""
         try:
-            await self._coordinator.move_up()
-        except Exception as e:
-            raise HomeAssistantError("Failed to move up")
-        await self._coordinator.async_request_refresh()
-
-    async def async_stop_cover(self, **kwargs: Any) -> None:
-        """Stop the cover."""
-        try:
-            await self._coordinator.stop()
-        except Exception as e:
-            raise HomeAssistantError("Failed to stop")
-        await self._coordinator.async_request_refresh()
+            await self.coordinator.client.async_move_up()
+        except DeskApiError as err:
+            raise HomeAssistantError(f"Failed to move desk up: {err}") from err
+        await self.coordinator.async_request_refresh()
 
     async def async_close_cover(self, **kwargs: Any) -> None:
-        """Cose the cover."""
+        """Move the desk down."""
         try:
-            await self._coordinator.move_down()
-        except Exception as e:
-            raise HomeAssistantError("Failed to move down")
-        await self._coordinator.async_request_refresh()
+            await self.coordinator.client.async_move_down()
+        except DeskApiError as err:
+            raise HomeAssistantError(f"Failed to move desk down: {err}") from err
+        await self.coordinator.async_request_refresh()
+
+    async def async_stop_cover(self, **kwargs: Any) -> None:
+        """Stop any active movement."""
+        try:
+            await self.coordinator.client.async_stop()
+        except DeskApiError as err:
+            raise HomeAssistantError(f"Failed to stop desk: {err}") from err
+        await self.coordinator.async_request_refresh()
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
-        """CLose the cover."""
+        """Move the desk to a specific 0..100 position."""
+        percentage = int(kwargs[ATTR_POSITION])
+        target = self._from_percentage(percentage)
         try:
-            await self._coordinator.move_to(int(kwargs[cover.ATTR_POSITION]))
-        except Exception as e:
-            raise HomeAssistantError("Failed to move down")
-        await self._coordinator.async_request_refresh()
-
-    @callback
-    def _handle_coordinator_update(self, *args: Any) -> None:
-        """Handle updated data from the coordinator."""
-        self.async_write_ha_state()
+            await self.coordinator.client.async_move_to(target)
+        except DeskApiError as err:
+            raise HomeAssistantError(f"Failed to set desk position: {err}") from err
+        await self.coordinator.async_request_refresh()

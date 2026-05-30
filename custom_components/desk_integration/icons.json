@@ -1,0 +1,33 @@
+{
+    "entity": {
+        "cover": {
+            "desk": {
+                "default": "mdi:desk"
+            }
+        },
+        "sensor": {
+            "position": {
+                "default": "mdi:arrow-up-down"
+            },
+            "movement": {
+                "default": "mdi:arrow-up-down"
+            }
+        },
+        "number": {
+            "height": {
+                "default": "mdi:desk"
+            },
+            "lower_limit": {
+                "default": "mdi:arrow-collapse-down"
+            },
+            "upper_limit": {
+                "default": "mdi:arrow-collapse-up"
+            }
+        },
+        "button": {
+            "auto_calibrate": {
+                "default": "mdi:tape-measure"
+            }
+        }
+    }
+}

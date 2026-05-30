@@ -15,15 +15,23 @@ jobs:
       contents: write
     steps:
       - name: "Checkout the repository"
-        uses: "actions/checkout@v4.2.2"
+        uses: "actions/checkout@v4"
+
+      - name: "Adjust version number"
+        shell: "bash"
+        run: |
+          version="${{ github.event.release.tag_name }}"
+          version="${version#v}"
+          sed -i "s/\"version\": \".*\"/\"version\": \"${version}\"/" \
+            "${{ github.workspace }}/custom_components/desk_integration/manifest.json"
 
       - name: "ZIP the integration directory"
         shell: "bash"
         run: |
-          cd "${{ github.workspace }}/custom_components/integration_blueprint"
-          zip integration_blueprint.zip -r ./
+          cd "${{ github.workspace }}/custom_components/desk_integration"
+          zip desk_integration.zip -r ./
 
       - name: "Upload the ZIP file to the release"
-        uses: "softprops/action-gh-release@v2.2.1"
+        uses: "softprops/action-gh-release@v2"
         with:
-          files: ${{ github.workspace }}/custom_components/integration_blueprint/integration_blueprint.zip
+          files: ${{ github.workspace }}/custom_components/desk_integration/desk_integration.zip

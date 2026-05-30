@@ -1,0 +1,280 @@
+openapi: 3.0.3
+info:
+  title: Desk Integration Webserver API
+  version: 1.0.0
+  description: |
+    OpenAPI description generated from firmware route registration and handlers.
+    Source of truth:
+    - main.cpp (route registration)
+    - Webserver.cpp (request handling behavior)
+
+    Notes:
+    - Most responses use content type text/html, including values that look like JSON.
+    - Routes registered without explicit HTTP method in firmware are HTTP_ANY.
+servers:
+  - url: http://192.168.2.3
+    description: Static IP configured in firmware
+
+tags:
+  - name: Control
+  - name: Position
+  - name: Calibration
+  - name: Limits
+
+paths:
+  /:
+    get:
+      tags: [Control]
+      summary: Serve the control UI and optionally execute a movement command
+      description: |
+        Returns the embedded HTML UI. If direction is provided, movement is applied before serving the page.
+      parameters:
+        - $ref: "#/components/parameters/DirectionQuery"
+      responses:
+        "200":
+          description: Embedded desk control page
+          content:
+            text/html:
+              schema:
+                type: string
+      x-firmware-http-method: HTTP_ANY
+    post:
+      tags: [Control]
+      summary: Serve the control UI and optionally execute a movement command
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                direction:
+                  $ref: "#/components/schemas/Direction"
+      responses:
+        "200":
+          description: Embedded desk control page
+          content:
+            text/html:
+              schema:
+                type: string
+      x-firmware-http-method: HTTP_ANY
+
+  /move:
+    get:
+      tags: [Control]
+      summary: Move desk up, down, or stop
+      parameters:
+        - $ref: "#/components/parameters/DirectionQuery"
+      responses:
+        "204":
+          description: Command accepted, no content
+      x-firmware-http-method: HTTP_ANY
+    post:
+      tags: [Control]
+      summary: Move desk up, down, or stop
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                direction:
+                  $ref: "#/components/schemas/Direction"
+      responses:
+        "204":
+          description: Command accepted, no content
+      x-firmware-http-method: HTTP_ANY
+
+  /state:
+    get:
+      tags: [Control]
+      summary: Get current movement state
+      responses:
+        "200":
+          description: Current movement state
+          content:
+            text/html:
+              schema:
+                type: string
+                enum:
+                  - moving up
+                  - moving down
+                  - not moving
+      x-firmware-http-method: HTTP_ANY
+
+  /position:
+    get:
+      tags: [Position]
+      summary: Get current desk position
+      responses:
+        "200":
+          description: Position value encoded as text
+          content:
+            text/html:
+              schema:
+                type: string
+                pattern: "^-?[0-9]+$"
+                example: "842"
+    post:
+      tags: [Position]
+      summary: Move desk to a target position
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [target]
+              properties:
+                target:
+                  type: integer
+                  format: int64
+                  description: Absolute target position
+      responses:
+        "200":
+          description: Move command accepted
+          content:
+            text/html:
+              schema:
+                type: string
+                example: move to position
+      x-notes:
+        - Firmware does not explicitly send an error when target is missing.
+
+  /calibrate:
+    post:
+      tags: [Calibration]
+      summary: Calibrate saved positions
+      description: |
+        Sends pos1 and/or pos2 to update calibration points.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                pos1:
+                  type: integer
+                  format: int64
+                pos2:
+                  type: integer
+                  format: int64
+              anyOf:
+                - required: [pos1]
+                - required: [pos2]
+      responses:
+        "200":
+          description: Calibration value accepted
+          content:
+            text/html:
+              schema:
+                type: string
+                enum:
+                  - set Position 1
+                  - set Position 2
+        "400":
+          description: Missing/invalid params according to handler fallback
+          content:
+            text/html:
+              schema:
+                type: string
+                example: wrong param
+
+  /autoCalibrate:
+    post:
+      tags: [Calibration]
+      summary: Run automatic calibration routine
+      description: |
+        Disables limits, moves to lower end stop, calibrates low endpoint,
+        moves to upper end stop, calibrates high endpoint, then re-enables limits.
+      responses:
+        "200":
+          description: Auto calibration finished
+          content:
+            text/html:
+              schema:
+                type: string
+                example: calibration finished
+
+  /autocalibrate:
+    post:
+      tags: [Calibration]
+      summary: Alias of /autoCalibrate
+      responses:
+        "200":
+          description: Auto calibration finished
+          content:
+            text/html:
+              schema:
+                type: string
+                example: calibration finished
+
+  /limits:
+    get:
+      tags: [Limits]
+      summary: Get configured movement limits
+      responses:
+        "200":
+          description: Limits as JSON text (content-type is text/html in firmware)
+          content:
+            text/html:
+              schema:
+                type: string
+                example: '{"lowerLimit": 620, "upperLimit": 1250}'
+    post:
+      tags: [Limits]
+      summary: Set movement limits
+      description: |
+        Updates lower and/or upper limits.
+        Firmware currently sends a 400 "wrong param" response at the end of the handler,
+        even when lower or upper was processed.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                lower:
+                  type: integer
+                  format: int64
+                upper:
+                  type: integer
+                  format: int64
+              anyOf:
+                - required: [lower]
+                - required: [upper]
+      responses:
+        "200":
+          description: Limits accepted
+          content:
+            text/html:
+              schema:
+                type: string
+                example: limits set
+        "400":
+          description: Missing/invalid params according to handler fallback
+          content:
+            text/html:
+              schema:
+                type: string
+                example: wrong param
+
+components:
+  parameters:
+    DirectionQuery:
+      name: direction
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/Direction"
+      description: |
+        Movement direction. Any value other than UP or DOWN results in stop.
+  schemas:
+    Direction:
+      type: string
+      enum: [UP, DOWN, STOP]
+      description: |
+        Direction accepted by handlers. STOP (or unknown value) results in stop behavior.
