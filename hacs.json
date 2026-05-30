@@ -1,6 +1,5 @@
 {
-    "name": "Fersaar Desk Integration",
+    "name": "Fersaar Desk",
     "hide_default_branch": true,
-    "homeassistant": "2026.3.2",
-    "render_readme": true
+    "homeassistant": "2026.3.2"
 }

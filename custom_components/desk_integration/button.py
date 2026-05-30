@@ -31,7 +31,7 @@ AUTO_CALIBRATE_DESCRIPTION = ButtonEntityDescription(
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     entry: DeskConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:

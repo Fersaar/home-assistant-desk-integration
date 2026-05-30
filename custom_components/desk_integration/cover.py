@@ -31,7 +31,7 @@ COVER_DESCRIPTION = CoverEntityDescription(
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     entry: DeskConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -71,7 +71,7 @@ class DeskCover(DeskEntity, CoverEntity):
         """Convert a 0..100 HA position to a raw firmware target."""
         limits = self.coordinator.data.limits
         span = limits.upper - limits.lower
-        return int(round(limits.lower + span * (percentage / 100)))
+        return round(limits.lower + span * (percentage / 100))
 
     # ---- Cover properties --------------------------------------------
 
@@ -102,28 +102,31 @@ class DeskCover(DeskEntity, CoverEntity):
 
     # ---- Commands -----------------------------------------------------
 
-    async def async_open_cover(self, **kwargs: Any) -> None:
+    async def async_open_cover(self, **kwargs: Any) -> None:  # noqa: ARG002
         """Move the desk up."""
         try:
             await self.coordinator.client.async_move_up()
         except DeskApiError as err:
-            raise HomeAssistantError(f"Failed to move desk up: {err}") from err
+            msg = f"Failed to move desk up: {err}"
+            raise HomeAssistantError(msg) from err
         await self.coordinator.async_request_refresh()
 
-    async def async_close_cover(self, **kwargs: Any) -> None:
+    async def async_close_cover(self, **kwargs: Any) -> None:  # noqa: ARG002
         """Move the desk down."""
         try:
             await self.coordinator.client.async_move_down()
         except DeskApiError as err:
-            raise HomeAssistantError(f"Failed to move desk down: {err}") from err
+            msg = f"Failed to move desk down: {err}"
+            raise HomeAssistantError(msg) from err
         await self.coordinator.async_request_refresh()
 
-    async def async_stop_cover(self, **kwargs: Any) -> None:
+    async def async_stop_cover(self, **kwargs: Any) -> None:  # noqa: ARG002
         """Stop any active movement."""
         try:
             await self.coordinator.client.async_stop()
         except DeskApiError as err:
-            raise HomeAssistantError(f"Failed to stop desk: {err}") from err
+            msg = f"Failed to stop desk: {err}"
+            raise HomeAssistantError(msg) from err
         await self.coordinator.async_request_refresh()
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
@@ -133,5 +136,6 @@ class DeskCover(DeskEntity, CoverEntity):
         try:
             await self.coordinator.client.async_move_to(target)
         except DeskApiError as err:
-            raise HomeAssistantError(f"Failed to set desk position: {err}") from err
+            msg = f"Failed to set desk position: {err}"
+            raise HomeAssistantError(msg) from err
         await self.coordinator.async_request_refresh()

@@ -1,5 +1,4 @@
-"""
-Generate brand icon/logo PNGs for the Desk integration.
+"""Generate brand icon/logo PNGs for the Desk integration.
 
 Renders the official Material Design Icons ``mdi:desk`` glyph (the same icon
 shown for entities in the Home Assistant UI) in the brand color and writes
@@ -85,6 +84,7 @@ def _logo(size_w: int, size_h: int, color: str) -> Image.Image:
 
 
 def main() -> None:
+    """Generate all brand icon and logo variants."""
     BRAND_DIR.mkdir(parents=True, exist_ok=True)
 
     # Icons: square, light + dark variants, @1x (256) and @2x (512).
@@ -99,7 +99,7 @@ def main() -> None:
         _logo(w, h, HA_BLUE).save(BRAND_DIR / f"logo{suffix}.png")
         _logo(w, h, WHITE).save(BRAND_DIR / f"dark_logo{suffix}.png")
 
-    print(f"Wrote brand images to {BRAND_DIR}")
+    print(f"Wrote brand images to {BRAND_DIR}")  # noqa: T201
 
 
 if __name__ == "__main__":

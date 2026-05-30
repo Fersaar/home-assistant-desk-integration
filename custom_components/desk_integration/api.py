@@ -45,8 +45,7 @@ class DeskApiClient:
     """Async HTTP client for the desk firmware described in openapi.yaml."""
 
     def __init__(self, host: str, session: aiohttp.ClientSession) -> None:
-        """
-        Initialize the client.
+        """Initialize the client.
 
         ``host`` may be a bare IP/hostname or a full ``http(s)://...`` URL.
         """
@@ -93,9 +92,12 @@ class DeskApiClient:
     async def async_get_movement_state(self) -> str:
         """Return the current movement state string."""
         text = (await self._request_text("GET", "/state")).strip().lower()
-        if text not in (STATE_MOVING_UP, STATE_MOVING_DOWN, STATE_NOT_MOVING):
-            return STATE_NOT_MOVING
-        return text
+        mapping = {
+            "moving up": STATE_MOVING_UP,
+            "moving down": STATE_MOVING_DOWN,
+            "not moving": STATE_NOT_MOVING,
+        }
+        return mapping.get(text, STATE_NOT_MOVING)
 
     async def async_get_status(self) -> DeskStatus:
         """Return position and movement state in a single call."""
@@ -125,8 +127,7 @@ class DeskApiClient:
         lower: int | None = None,
         upper: int | None = None,
     ) -> None:
-        """
-        Update the lower and/or upper movement limits.
+        """Update the lower and/or upper movement limits.
 
         The firmware always returns 400 from this endpoint regardless of
         success, so the response status is ignored.
@@ -163,14 +164,14 @@ class DeskApiClient:
 
     # ---- HTTP helpers -------------------------------------------------
 
-    async def _request(
+    async def _request(  # noqa: PLR0913
         self,
         method: str,
         path: str,
         *,
         params: dict[str, str] | None = None,
         data: dict[str, str] | None = None,
-        timeout: float | None = None,
+        timeout: float | None = None,  # noqa: ASYNC109
         ignore_status: bool = False,
     ) -> aiohttp.ClientResponse:
         url = f"{self._base_url}{path}"

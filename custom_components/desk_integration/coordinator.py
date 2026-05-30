@@ -54,20 +54,23 @@ class DeskDataUpdateCoordinator(DataUpdateCoordinator[DeskData]):
         try:
             self._limits = await self.client.async_get_limits()
         except DeskApiError as err:
-            raise UpdateFailed(f"Could not read desk limits: {err}") from err
+            msg = f"Could not read desk limits: {err}"
+            raise UpdateFailed(msg) from err
 
     async def _async_update_data(self) -> DeskData:
         """Fetch the latest desk status."""
         try:
             status: DeskStatus = await self.client.async_get_status()
         except DeskApiError as err:
-            raise UpdateFailed(f"Error communicating with desk: {err}") from err
+            msg = f"Error communicating with desk: {err}"
+            raise UpdateFailed(msg) from err
 
         if self._limits is None:
             try:
                 self._limits = await self.client.async_get_limits()
             except DeskApiError as err:
-                raise UpdateFailed(f"Error reading desk limits: {err}") from err
+                msg = f"Error reading desk limits: {err}"
+                raise UpdateFailed(msg) from err
 
         return DeskData(
             position=status.position,
@@ -80,5 +83,6 @@ class DeskDataUpdateCoordinator(DataUpdateCoordinator[DeskData]):
         try:
             self._limits = await self.client.async_get_limits()
         except DeskApiError as err:
-            raise UpdateFailed(f"Error reading desk limits: {err}") from err
+            msg = f"Error reading desk limits: {err}"
+            raise UpdateFailed(msg) from err
         await self.async_request_refresh()

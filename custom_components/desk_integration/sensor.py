@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -15,14 +14,15 @@ from homeassistant.components.sensor import (
 from homeassistant.const import EntityCategory
 
 from .const import STATE_MOVING_DOWN, STATE_MOVING_UP, STATE_NOT_MOVING
-from .coordinator import DeskData
 from .entity import DeskEntity
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import DeskDataUpdateCoordinator
+    from .coordinator import DeskData, DeskDataUpdateCoordinator
     from .data import DeskConfigEntry
 
 
@@ -52,7 +52,7 @@ SENSOR_DESCRIPTIONS: tuple[DeskSensorEntityDescription, ...] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     entry: DeskConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:

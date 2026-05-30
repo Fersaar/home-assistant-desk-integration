@@ -17,7 +17,7 @@ DEFAULT_SCAN_INTERVAL: Final = 2
 # HTTP request timeout (seconds).
 REQUEST_TIMEOUT: Final = 5
 
-# Movement state strings reported by the firmware.
-STATE_MOVING_UP: Final = "moving up"
-STATE_MOVING_DOWN: Final = "moving down"
-STATE_NOT_MOVING: Final = "not moving"
+# Movement state strings (used as enum options and translation keys).
+STATE_MOVING_UP: Final = "moving_up"
+STATE_MOVING_DOWN: Final = "moving_down"
+STATE_NOT_MOVING: Final = "not_moving"

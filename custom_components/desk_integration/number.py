@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -16,14 +15,15 @@ from homeassistant.const import EntityCategory, UnitOfLength
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import DeskApiClient, DeskApiError
-from .coordinator import DeskData
 from .entity import DeskEntity
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import DeskDataUpdateCoordinator
+    from .coordinator import DeskData, DeskDataUpdateCoordinator
     from .data import DeskConfigEntry
 
 
@@ -62,7 +62,7 @@ LIMIT_DESCRIPTIONS: tuple[DeskLimitNumberDescription, ...] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     entry: DeskConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -121,7 +121,8 @@ class DeskHeightNumber(DeskEntity, NumberEntity):
         try:
             await self.coordinator.client.async_move_to(int(value))
         except DeskApiError as err:
-            raise HomeAssistantError(f"Failed to move desk: {err}") from err
+            msg = f"Failed to move desk: {err}"
+            raise HomeAssistantError(msg) from err
         await self.coordinator.async_request_refresh()
 
 
@@ -152,5 +153,6 @@ class DeskLimitNumber(DeskEntity, NumberEntity):
         try:
             await self.entity_description.set_fn(self.coordinator.client, int(value))
         except DeskApiError as err:
-            raise HomeAssistantError(f"Failed to update desk limit: {err}") from err
+            msg = f"Failed to update desk limit: {err}"
+            raise HomeAssistantError(msg) from err
         await self.coordinator.async_refresh_limits()

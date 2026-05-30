@@ -1,12 +1,12 @@
 {
     "domain": "desk_integration",
-    "name": "Desk",
+    "name": "Fersaar Desk",
     "codeowners": [],
     "config_flow": true,
-    "documentation": "https://tbd",
+    "documentation": "https://github.com/Fersaar/home-assistant-desk-integration",
     "integration_type": "device",
     "iot_class": "local_polling",
-    "issue_tracker": "https://tbd",
+    "issue_tracker": "https://github.com/Fersaar/home-assistant-desk-integration/issues",
     "requirements": [],
     "version": "1.0.0"
 }

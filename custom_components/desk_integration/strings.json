@@ -33,9 +33,9 @@
             "movement": {
                 "name": "Movement",
                 "state": {
-                    "moving up": "Moving up",
-                    "moving down": "Moving down",
-                    "not moving": "Not moving"
+                    "moving_up": "Moving up",
+                    "moving_down": "Moving down",
+                    "not_moving": "Not moving"
                 }
             }
         },
